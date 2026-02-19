@@ -35,7 +35,7 @@ export default function PeakHourAlert() {
     const candidates = useMemo(() => {
         // Filter for devices that are 'on' and type 'unnecessary'
         // Using 'load_kw' as confirmd from data source
-        return appliances.filter(app => app.status === 'on' && app.type === 'unnecessary');
+        return (appliances || []).filter(app => app.status === 'on' && app.type === 'unnecessary');
     }, [appliances]);
 
     // 2. Selection State (IDs of devices selected to turn OFF)

@@ -8,7 +8,54 @@ export function UserProvider({ children }) {
     const [state, setState] = useState({
         ...INITIAL_USER_STATE,
         dailyConsumption: 0, // Cumulative kWh for the "current" day
+        credits: 0, // Added funds
+        customTransactions: [], // Manual user transactions (Redeem/Add Funds)
     });
+
+    // ============================================================
+    // Add Credits (Add Funds)
+    // ============================================================
+    const addCredits = useCallback((amount) => {
+        setState((prev) => ({
+            ...prev,
+            credits: prev.credits + amount,
+            customTransactions: [
+                {
+                    id: `credit-${Date.now()}`,
+                    type: 'DEPOSIT',
+                    amount: amount,
+                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    description: 'Added Funds to Wallet',
+                    hour: 'Now'
+                },
+                ...prev.customTransactions
+            ]
+        }));
+    }, []);
+
+    // ============================================================
+    // Redeem Points
+    // ============================================================
+    const redeemPoints = useCallback((amount, itemTitle) => {
+        setState((prev) => {
+            if (prev.points < amount) return prev; // Should be blocked by UI, but safety check
+            return {
+                ...prev,
+                points: prev.points - amount,
+                customTransactions: [
+                    {
+                        id: `redeem-${Date.now()}`,
+                        type: 'REDEEM',
+                        amount: -amount,
+                        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        description: `Redeemed: ${itemTitle}`,
+                        hour: 'Now'
+                    },
+                    ...prev.customTransactions
+                ]
+            };
+        });
+    }, []);
 
     // ============================================================
     // Make decision — updates points, penalty, totalKwhSaved
@@ -111,6 +158,8 @@ export function UserProvider({ children }) {
         setUserDecidedThisPeak,
         updateConsumption,
         resetUser,
+        addCredits,
+        redeemPoints,
     };
 
     return (

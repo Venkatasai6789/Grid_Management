@@ -91,12 +91,14 @@ export function getComplianceStreak(applianceId, allDecisions, sessionId) {
 
 
 export function getUnnecessaryOnAppliances(appliances) {
+    if (!appliances) return [];
     return appliances.filter(app => app.type === 'unnecessary' && app.status === 'on');
 }
 
 // Pre-select appliances to meet reduction target
 // Simple greedy strategy: turn off biggest loads first until target met
 export function preselectAppliances(appliances, reductionTarget) {
+    if (!appliances) return { selectedIds: [], totalSelectedKw: 0, canMeetTarget: false };
     // 1. Filter for unnecessary & ON appliances
     const candidates = getUnnecessaryOnAppliances(appliances);
 

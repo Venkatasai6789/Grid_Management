@@ -1,7 +1,7 @@
 import React from 'react';
 import ApplianceCard from './ApplianceCard';
 
-const DeviceList = ({ appliances, onToggle, onTurnOff }) => {
+const DeviceList = ({ appliances = [], onToggle, onTurnOff }) => {
     return (
         <div className="w-full">
             <div className="flex justify-between items-end mb-4 px-1">
@@ -15,7 +15,7 @@ const DeviceList = ({ appliances, onToggle, onTurnOff }) => {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {appliances.map(app => (
+                {(appliances || []).map(app => (
                     <ApplianceCard
                         key={app.id}
                         appliance={app}

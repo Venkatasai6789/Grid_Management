@@ -122,6 +122,7 @@ export default function AppliancePanel() {
 
     // 3. Sorted Appliances (Memoized)
     const sortedAppliances = useMemo(() => {
+        if (!appliances) return [];
         if (!isPeak) return appliances;
 
         // Skip sort if nothing actionable to prioritize (early return)

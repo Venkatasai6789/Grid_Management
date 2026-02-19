@@ -118,7 +118,7 @@ const AnalyticsPage = () => {
     const usageData = useMemo(() => {
         // Calculate instantaneous load ONLY for the "Day" view's current hour projection
         // For other views, dailyConsumption is enough.
-        const currentLoad = appliances.reduce((sum, app) =>
+        const currentLoad = (appliances || []).reduce((sum, app) =>
             sum + (app.status === 'on' ? app.load_kw : 0), 0
         );
 
@@ -179,7 +179,7 @@ const AnalyticsPage = () => {
                         </span>
                     </h2>
                     <p className="text-gray-400 text-xs font-medium mt-1 ml-1">
-                        Monitoring {appliances.length} active devices in real-time
+                        Monitoring {(appliances || []).length} active devices in real-time
                     </p>
                 </div>
 
@@ -189,8 +189,8 @@ const AnalyticsPage = () => {
                             key={p}
                             onClick={() => setPeriod(p)}
                             className={`px-6 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all relative overflow-hidden group ${period === p
-                                    ? 'bg-white text-black shadow-lg shadow-white/10'
-                                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                ? 'bg-white text-black shadow-lg shadow-white/10'
+                                : 'text-gray-400 hover:text-white hover:bg-white/5'
                                 }`}
                         >
                             <span className="relative z-10">{p}</span>

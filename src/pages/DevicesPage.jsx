@@ -6,12 +6,13 @@ import { Zap, Power, Thermometer, Activity, RefreshCw, Smartphone, Wind, Droplet
 import { motion, AnimatePresence } from 'framer-motion';
 
 const DevicesPage = () => {
-    const { appliances, toggleAppliance } = useUserDashboard();
+    const { appliances: rawAppliances, toggleAppliance } = useUserDashboard();
+    const appliances = rawAppliances || [];
     const [selectedId, setSelectedId] = useState(appliances.length > 0 ? appliances[0].id : null);
     const [isScanning, setIsScanning] = useState(false);
 
     // Get the currently selected appliance object
-    const activeAppliance = appliances.find(a => a.id === selectedId) || appliances[0];
+    const activeAppliance = appliances.find(a => a?.id === selectedId) || appliances[0];
 
     // Helper for icons based on type
     const getIcon = (type) => {
@@ -76,8 +77,8 @@ const DevicesPage = () => {
                             key={device.id}
                             onClick={() => setSelectedId(device.id)}
                             className={`w-full p-4 rounded-3xl text-left transition-all border group relative overflow-hidden ${selectedId === device.id
-                                    ? 'bg-white text-black shadow-xl scale-[1.02]'
-                                    : 'bg-black/20 border-white/5 hover:bg-white/5 text-gray-400 hover:text-white'
+                                ? 'bg-white text-black shadow-xl scale-[1.02]'
+                                : 'bg-black/20 border-white/5 hover:bg-white/5 text-gray-400 hover:text-white'
                                 }`}
                         >
                             <div className="flex items-center justify-between mb-2">
@@ -114,8 +115,8 @@ const DevicesPage = () => {
                                         {activeAppliance.name}
                                     </h2>
                                     <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${isOnline
-                                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                                            : 'bg-gray-500/10 border-gray-500/20 text-gray-400'
+                                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                        : 'bg-gray-500/10 border-gray-500/20 text-gray-400'
                                         }`}>
                                         {isOnline ? 'Online' : 'Offline'}
                                     </span>
@@ -131,8 +132,8 @@ const DevicesPage = () => {
                                     whileTap={{ scale: 0.95 }}
                                     onClick={() => toggleAppliance(activeAppliance.id)}
                                     className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all shadow-lg ${isOnline
-                                            ? 'bg-emerald-500 text-white shadow-emerald-500/20 hover:bg-emerald-400'
-                                            : 'bg-white/10 text-gray-400 hover:bg-white/20'
+                                        ? 'bg-emerald-500 text-white shadow-emerald-500/20 hover:bg-emerald-400'
+                                        : 'bg-white/10 text-gray-400 hover:bg-white/20'
                                         }`}
                                 >
                                     <Power className="w-8 h-8" />
@@ -205,8 +206,8 @@ const DevicesPage = () => {
                         {/* Grid Impact Card */}
                         <div className="flex flex-col gap-6">
                             <div className={`p-8 rounded-[3rem] text-white flex flex-col justify-between relative overflow-hidden h-full ${currentPower > 2
-                                    ? 'bg-gradient-to-br from-orange-600 to-red-900 border border-orange-500/30'
-                                    : 'bg-gradient-to-br from-emerald-900 to-black border border-emerald-500/20'
+                                ? 'bg-gradient-to-br from-orange-600 to-red-900 border border-orange-500/30'
+                                : 'bg-gradient-to-br from-emerald-900 to-black border border-emerald-500/20'
                                 }`}>
                                 <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
 

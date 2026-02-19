@@ -65,8 +65,9 @@ export function useUserDashboard() {
         [user.appliances, reductionTarget, gwo.currentReward, sim.obedienceRate]);
 
     // Derived: user's transactions from allDecisions
+    // Derived: user's transactions from allDecisions AND customTransactions
     const transactions = useMemo(() => {
-        return sim.allDecisions
+        const simTransactions = sim.allDecisions
             .filter((d) => !d.isNPC)
             .map((d) => ({
                 id: `${d.hour}-${d.timestamp}`,
@@ -80,8 +81,23 @@ export function useUserDashboard() {
                     : d.choice === 'marketplace'
                         ? `Energy marketplace trade — hour ${d.hour}:00`
                         : `Non-compliance penalty — peak hour ${d.hour}:00`,
+                rawTime: new Date().setHours(d.hour, 0, 0, 0) // Approximation for sorting if needed, though we rely on list order mostly
             }));
-    }, [sim.allDecisions]);
+
+        const manualTransactions = user.customTransactions.map(t => ({
+            ...t,
+            kwhSaved: 0,
+            rawTime: Date.now() // Always newer
+        }));
+
+        // Merge and sort roughly by "recency" (assuming sim decisions happen in order, and manual happen 'now')
+        // Ideally we'd have real timestamps on everything. For now, we prepend manual ones if they are "new".
+        // A simple generic sort might be tricky without unified time. 
+        // Let's just concat: Manual (newest) + Sim (newest to oldest or vice versa).
+        // Actually `sim.allDecisions` grows. 
+
+        return [...manualTransactions, ...simTransactions.reverse()];
+    }, [sim.allDecisions, user.customTransactions]);
 
     // Derived: current grid load for this hour
     const currentGridLoad = useMemo(() => {
@@ -116,6 +132,7 @@ export function useUserDashboard() {
         // User state
         points: user.points,
         penalty: user.penalty,
+        credits: user.credits,
         totalKwhSaved: user.totalKwhSaved,
         dailyConsumption: user.dailyConsumption,
         appliances: user.appliances,
@@ -126,6 +143,8 @@ export function useUserDashboard() {
         restoreAutoOff: user.restoreAutoOff,
         makeDecision: user.makeDecision,
         setUserDecidedThisPeak: user.setUserDecidedThisPeak,
+        addCredits: user.addCredits,
+        redeemPoints: user.redeemPoints,
         // GWO (for modal — read at decision time)
         currentReward: gwo.currentReward,
         currentPenalty: gwo.currentPenalty,
