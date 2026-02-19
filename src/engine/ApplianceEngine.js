@@ -219,3 +219,116 @@ export function generateWeeklyUsage(todayIndex) {
         usage: Math.floor(Math.random() * (35 - 18) + 18) + (index === 5 || index === 6 ? 5 : 0) // Higher on weekends
     }));
 }
+
+/**
+ * Generates historical usage data tailored to the user's specific appliances.
+ * Supports 'Day' (Hourly), 'Week' (Daily), and 'Month' (Daily) views.
+ * 
+ * @param {Array} appliances - The user's appliance list.
+ * @param {string} period - 'Day', 'Week', or 'Month'.
+ * @param {number} currentHourlyDraw - (Optional) Current live load in kW.
+ * @param {number} currentHour - (Optional) Current hour index (0-23).
+ * @param {number} dailyAccumulatedKwh - (Optional) Real accumulated kWh for the current day.
+ */
+export function generateHistoricalUsage(appliances, period, currentHourlyDraw = 0, currentHour = 12, dailyAccumulatedKwh = 0) {
+    if (!appliances) return [];
+
+    // Calculate approximate daily usage based on appliance specs
+    // This gives us a "baseline" to oscillate around for synthetic past data
+    const baselineDailyKwh = appliances.reduce((sum, app) => {
+        // Assume devices run for typical hours if not specified
+        const hours = app.avg_daily_hours || (app.category === 'cooling' ? 8 : app.category === 'lighting' ? 6 : 4);
+        return sum + (app.load_kw * hours);
+    }, 0);
+
+    const now = new Date();
+
+    if (period === 'Day') {
+        // 24-Hour Hackathon View: 00:00 to 23:00
+        // Past hours: Simulated curve
+        // Current hour: Real-time estimate (or just the current hour's slot)
+        // Future hours: 0 or projected
+
+        return Array.from({ length: 24 }, (_, hour) => {
+            let kwh = 0;
+            const isFuture = hour > currentHour;
+            const isNow = hour === currentHour;
+
+            if (isFuture) {
+                kwh = 0; // Future is empty
+            } else if (isNow) {
+                // For the current hour, we might show the instantaneous load * 1h (as a projection)
+                // or closer to 0 if the hour just started. 
+                // Let's us the live draw as a proxy for "Avg kW this hour"
+                kwh = currentHourlyDraw;
+            } else {
+                // Past Hours (Simulate a generic "Duck Curve" or dual-peak profile)
+                // Morning peak (7-9), Evening peak (18-21)
+                const isMorningPeak = hour >= 7 && hour <= 9;
+                const isEveningPeak = hour >= 18 && hour <= 21;
+                const baseLoad = baselineDailyKwh / 24; // Average hourly
+
+                let multiplier = 0.5; // Night
+                if (isMorningPeak) multiplier = 1.2;
+                if (isEveningPeak) multiplier = 1.6;
+                if (hour >= 10 && hour <= 17) multiplier = 0.9; // Day
+
+                kwh = baseLoad * multiplier * (0.8 + Math.random() * 0.4); // +/- variance
+            }
+
+            return {
+                label: `${hour}:00`,
+                hour,
+                value: Math.max(0.1, parseFloat(kwh.toFixed(2))), // Ensure non-negative
+                isFuture
+            };
+        });
+    }
+
+    if (period === 'Week') {
+        const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        const todayIndex = now.getDay() === 0 ? 6 : now.getDay() - 1; // Mon=0, Sun=6
+
+        return days.map((day, index) => {
+            let usage = 0;
+            const isFuture = index > todayIndex;
+            const isToday = index === todayIndex;
+
+            if (isFuture) {
+                usage = 0;
+            } else if (isToday) {
+                // Use the REAL accumulated data for today
+                usage = dailyAccumulatedKwh > 0 ? dailyAccumulatedKwh : (baselineDailyKwh * (currentHour / 24));
+            } else {
+                // Past days: Baseline +/- 20%
+                usage = baselineDailyKwh * (0.8 + Math.random() * 0.4);
+                if (index >= 5) usage *= 1.1; // Weekends higher?
+            }
+
+            return {
+                label: day,
+                value: parseFloat(usage.toFixed(1)),
+                isFuture
+            };
+        });
+    }
+
+    if (period === 'Month') {
+        // Generate last 30 days
+        // We'll just return Day 1 to Day 30
+        return Array.from({ length: 30 }, (_, i) => {
+            const dayNum = i + 1;
+            const isToday = i === 29; // Assume today is end of month cycle for calc simplicity or just 30th day
+
+            let usage = baselineDailyKwh * (0.8 + Math.random() * 0.4);
+            if (isToday) usage = dailyAccumulatedKwh > 0 ? dailyAccumulatedKwh : usage;
+
+            return {
+                label: `${dayNum}`,
+                value: parseFloat(usage.toFixed(1))
+            };
+        });
+    }
+
+    return [];
+}
