@@ -1,0 +1,173 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #4285F4;
+  /* Google Blue */
+  --color-primary-dark: #3367D6;
+  --color-primary-light: #8AB4F8;
+
+  --color-secondary: #FBBC04;
+  /* Google Yellow */
+  --color-success: #34A853;
+  /* Google Green */
+  --color-danger: #EA4335;
+  /* Google Red */
+
+  --color-surface-dark: #131314;
+  /* Google Dark Background */
+  --color-surface-card: #1E1F20;
+  /* Google Dark Surface */
+  --color-surface-highlight: #2D2E30;
+
+  --font-family-sans: "Inter", system-ui, sans-serif;
+
+  --animate-fade-in: fade-in 0.5s ease-out;
+  --animate-slide-up: slide-up 0.5s ease-out;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slide-up {
+    from {
+      transform: translateY(20px);
+      opacity: 0;
+    }
+
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+}
+
+:root {
+  color-scheme: dark;
+  --background: var(--color-surface-dark);
+  --foreground: #E3E3E3;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--color-surface-dark);
+  color: var(--foreground);
+  font-family: var(--font-family-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* Glassmorphism & Bento Utilities */
+.glass-panel {
+  background: rgba(30, 31, 32, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel-heavy {
+  background: rgba(19, 19, 20, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Data Visualization Classes */
+.text-google-blue {
+  color: #4285F4;
+}
+
+.text-google-red {
+  color: #EA4335;
+}
+
+.text-google-green {
+  color: #34A853;
+}
+
+.text-google-yellow {
+  color: #FBBC04;
+}
+
+.bg-google-blue {
+  background-color: #4285F4;
+}
+
+.bg-google-red {
+  background-color: #EA4335;
+}
+
+.bg-google-green {
+  background-color: #34A853;
+}
+
+.bg-google-yellow {
+  background-color: #FBBC04;
+}
+
+/* Pulse Animations */
+.pulse-red-border {
+  animation: pulse-red 2s infinite;
+  border-color: #EA4335;
+}
+
+@keyframes pulse-red {
+  0% {
+    box-shadow: 0 0 0 0 rgba(234, 67, 53, 0.4);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(234, 67, 53, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(234, 67, 53, 0);
+  }
+}
+
+.pulse-green-border {
+  animation: pulse-green 2s infinite;
+  border-color: #34A853;
+}
+
+@keyframes pulse-green {
+  0% {
+    box-shadow: 0 0 0 0 rgba(52, 168, 83, 0.4);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(52, 168, 83, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(52, 168, 83, 0);
+  }
+}
