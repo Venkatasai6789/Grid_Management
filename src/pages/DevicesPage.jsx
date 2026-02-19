@@ -1,166 +1,237 @@
-import React, { useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import React, { useState, useMemo } from 'react';
+import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
+import { useUserDashboard } from '../hooks/useUserDashboard';
+import { generateHistoricalUsage } from '../engine/ApplianceEngine';
+import { Zap, Power, Thermometer, Activity, RefreshCw, Smartphone, Wind, Droplet, Monitor, Coffee, BatteryCharging, Leaf } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const DevicesPage = () => {
-    const [selectedId, setSelectedId] = useState('ac');
+    const { appliances, toggleAppliance } = useUserDashboard();
+    const [selectedId, setSelectedId] = useState(appliances.length > 0 ? appliances[0].id : null);
     const [isScanning, setIsScanning] = useState(false);
 
-    const devices = {
-        ac: { name: 'Living Room AC', power: '1.2 kW', temp: '22°C', mode: 'Cooling', health: 'Healthy', usage: [40, 45, 30, 55, 40, 20, 10], location: 'Floor 1', schedule: 'Eco-Timer active', icon: 'ac_unit' },
-        ev: { name: 'Tesla Model 3', power: '7.4 kW', charge: '82%', mode: 'Scheduled', health: 'Optimal', usage: [10, 5, 80, 85, 70, 10, 5], location: 'Garage', schedule: 'Charges at 2 AM', icon: 'ev_station' },
-        lights: { name: 'Smart Lighting', power: '0.1 kW', count: '12 active', mode: 'Auto', health: 'Good', usage: [15, 12, 14, 18, 12, 10, 11], location: 'Entire Home', schedule: 'Sunset trigger', icon: 'lightbulb' },
-        washer: { name: 'LG ThinQ Washer', power: '0.0 kW', cycle: 'Idle', mode: 'Smart Link', health: 'Service Soon', usage: [0, 60, 0, 45, 0, 30, 0], location: 'Laundry Room', schedule: 'Manual start', icon: 'local_laundry_service' }
+    // Get the currently selected appliance object
+    const activeAppliance = appliances.find(a => a.id === selectedId) || appliances[0];
+
+    // Helper for icons based on type
+    const getIcon = (type) => {
+        switch (type) {
+            case 'AC': return <Wind className="w-6 h-6" />;
+            case 'Washer': return <Droplet className="w-6 h-6" />;
+            case 'EV': return <BatteryCharging className="w-6 h-6" />;
+            case 'TV': return <Monitor className="w-6 h-6" />;
+            case 'Kitchen': return <Coffee className="w-6 h-6" />;
+            case 'Lighting': return <Zap className="w-6 h-6" />;
+            default: return <Smartphone className="w-6 h-6" />;
+        }
     };
 
-    const active = devices[selectedId];
+    // Generate Chart Data for the SELECTED device
+    // We use 'Week' view to show 7-day history for this specific device
+    const chartData = useMemo(() => {
+        if (!activeAppliance) return [];
+        // Pass single-element array to generator to get just this device's curve
+        return generateHistoricalUsage([activeAppliance], 'Week', activeAppliance.load_kw);
+    }, [activeAppliance]);
 
-    const chartData = active.usage.map((val, i) => ({
-        day: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][i],
-        usage: val
-    }));
+    // Derived Stats
+    const isOnline = activeAppliance?.status === 'on';
+    const currentPower = isOnline ? activeAppliance.load_kw : 0;
+
+    // Simulate some metadata if missing
+    const mode = activeAppliance?.category === 'cooling' ? 'Cooling' : (activeAppliance?.category === 'transport' ? 'Charging' : 'Auto');
+    const temperature = activeAppliance?.category === 'cooling' ? '22°C' : (activeAppliance?.category === 'heating' ? '24°C' : 'N/A');
+    const health = 'Optimal'; // In future, simulate degradation
 
     return (
-        <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-140px)]">
-            {/* Device List Sidebar */}
-            <div className="w-full lg:w-80 flex flex-col gap-4 overflow-y-auto pr-2 pb-20">
-                <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-6 rounded-[2rem] text-white shadow-lg sticky top-0 z-10">
-                    <h3 className="text-lg font-black uppercase tracking-tight mb-1">My Ecosystem</h3>
-                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">{Object.keys(devices).length} Devices Online</p>
+        <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-140px)] animate-fade-in pb-20 lg:pb-0">
+
+            {/* SIDEBAR: My Ecosystem */}
+            <div className="w-full lg:w-80 flex flex-col gap-4">
+
+                {/* Header Card */}
+                <div className="glass-panel-heavy p-6 rounded-[2rem] relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl -mr-10 -mt-10 group-hover:bg-indigo-500/30 transition-colors"></div>
+                    <h3 className="text-lg font-black text-white uppercase tracking-tight mb-1 relative z-10">My Ecosystem</h3>
+                    <p className="text-gray-400 text-xs font-bold uppercase tracking-widest relative z-10">
+                        {appliances.filter(a => a.status === 'on').length} Devices Online
+                    </p>
+
                     <button
-                        onClick={() => setIsScanning(!isScanning)}
-                        className="mt-6 w-full py-3 bg-primary/20 border border-primary/50 rounded-xl text-primary font-black text-xs uppercase tracking-widest hover:bg-primary/30 transition-colors flex items-center justify-center gap-2"
+                        onClick={() => {
+                            setIsScanning(true);
+                            setTimeout(() => setIsScanning(false), 2000);
+                        }}
+                        className="mt-6 w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-indigo-300 font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 group/btn"
                     >
-                        <span className={`material-symbols-outlined text-lg ${isScanning ? 'animate-spin' : ''}`}>sync</span>
+                        <RefreshCw className={`w-4 h-4 ${isScanning ? 'animate-spin' : 'group-hover/btn:rotate-180 transition-transform duration-500'}`} />
                         {isScanning ? 'Scanning...' : 'Add Device'}
                     </button>
                 </div>
 
-                {Object.entries(devices).map(([id, device]) => (
-                    <button
-                        key={id}
-                        onClick={() => setSelectedId(id)}
-                        className={`p-4 rounded-[2rem] text-left transition-all border group relative overflow-hidden ${selectedId === id ? 'bg-white dark:bg-slate-800 border-primary dark:border-primary shadow-md' : 'bg-white dark:bg-slate-900 border-transparent hover:border-slate-200 dark:hover:border-slate-700'}`}
-                    >
-                        <div className="flex items-start justify-between mb-2">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${selectedId === id ? 'bg-primary text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
-                                <span className="material-symbols-outlined">{device.icon}</span>
+                {/* Device List */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-2">
+                    {appliances.map((device) => (
+                        <button
+                            key={device.id}
+                            onClick={() => setSelectedId(device.id)}
+                            className={`w-full p-4 rounded-3xl text-left transition-all border group relative overflow-hidden ${selectedId === device.id
+                                    ? 'bg-white text-black shadow-xl scale-[1.02]'
+                                    : 'bg-black/20 border-white/5 hover:bg-white/5 text-gray-400 hover:text-white'
+                                }`}
+                        >
+                            <div className="flex items-center justify-between mb-2">
+                                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-colors ${selectedId === device.id ? 'bg-black text-white' : 'bg-white/10 text-gray-400'
+                                    }`}>
+                                    {getIcon(device.type)}
+                                </div>
+                                <div className={`w-2 h-2 rounded-full ${device.status === 'on' ? 'bg-emerald-500' : 'bg-gray-600'}`}></div>
                             </div>
-                            {selectedId === id && <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>}
-                        </div>
-                        <h4 className={`font-bold ${selectedId === id ? 'text-slate-900 dark:text-white' : 'text-slate-500'}`}>{device.name}</h4>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mt-1">{device.location}</p>
-                    </button>
-                ))}
+                            <div>
+                                <h4 className="font-bold text-sm truncate">{device.name}</h4>
+                                <p className={`text-[10px] font-bold uppercase tracking-wide mt-1 ${selectedId === device.id ? 'text-gray-500' : 'text-gray-600'
+                                    }`}>
+                                    {device.status === 'on' ? `${device.load_kw.toFixed(2)} kW` : 'Offline'}
+                                </p>
+                            </div>
+                        </button>
+                    ))}
+                </div>
             </div>
 
-            {/* Device Details Area */}
-            <div className="flex-1 overflow-y-auto pb-20 space-y-6">
-                {/* Header Stats */}
-                <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+            {/* MAIN CONTENT: Active Device Details */}
+            {activeAppliance && (
+                <div className="flex-1 overflow-y-auto custom-scrollbar space-y-6 lg:pr-4">
 
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 relative z-10">
-                        <div>
-                            <div className="flex items-center gap-3 mb-2">
-                                <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{active.name}</h2>
-                                <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-full text-[10px] font-black uppercase tracking-widest">Online</span>
+                    {/* Header Stats */}
+                    <div className="glass-panel p-8 rounded-[3rem] relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px] -mr-20 -mt-20 pointer-events-none"></div>
+
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 relative z-10 gap-6">
+                            <div>
+                                <div className="flex items-center gap-3 mb-2">
+                                    <h2 className="text-3xl md:text-4xl font-black text-white uppercase tracking-tight leading-none">
+                                        {activeAppliance.name}
+                                    </h2>
+                                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${isOnline
+                                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                            : 'bg-gray-500/10 border-gray-500/20 text-gray-400'
+                                        }`}>
+                                        {isOnline ? 'Online' : 'Offline'}
+                                    </span>
+                                </div>
+                                <p className="text-gray-400 font-bold flex items-center gap-2 text-sm">
+                                    <Activity className="w-4 h-4" />
+                                    {activeAppliance.category.charAt(0).toUpperCase() + activeAppliance.category.slice(1)} • {activeAppliance.location || 'Home'}
+                                </p>
                             </div>
-                            <p className="text-slate-500 dark:text-slate-400 font-bold flex items-center gap-2">
-                                <span className="material-symbols-outlined text-lg">schedule</span>
-                                {active.schedule}
-                            </p>
+
+                            <div className="flex gap-4">
+                                <motion.button
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => toggleAppliance(activeAppliance.id)}
+                                    className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all shadow-lg ${isOnline
+                                            ? 'bg-emerald-500 text-white shadow-emerald-500/20 hover:bg-emerald-400'
+                                            : 'bg-white/10 text-gray-400 hover:bg-white/20'
+                                        }`}
+                                >
+                                    <Power className="w-8 h-8" />
+                                </motion.button>
+                            </div>
                         </div>
-                        <div className="mt-4 md:mt-0 flex gap-3">
-                            <button className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 transition-colors">
-                                <span className="material-symbols-outlined">power_settings_new</span>
-                            </button>
-                            <button className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 transition-colors">
-                                <span className="material-symbols-outlined">settings</span>
-                            </button>
+
+                        {/* Quick Stats Grid */}
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 relative z-10">
+                            {[
+                                { label: 'Power Draw', value: `${currentPower.toFixed(2)} kW`, icon: Zap },
+                                { label: 'Current Mode', value: mode, icon: Activity },
+                                { label: 'Temperature', value: temperature, icon: Thermometer },
+                                { label: 'Device Health', value: health, icon: Leaf },
+                            ].map((stat, i) => (
+                                <div key={i} className="p-5 bg-black/20 rounded-[2rem] border border-white/5 backdrop-blur-md">
+                                    <div className="flex items-center gap-2 mb-2 text-gray-400">
+                                        <stat.icon className="w-3 h-3" />
+                                        <p className="text-[10px] font-black uppercase tracking-widest">{stat.label}</p>
+                                    </div>
+                                    <p className="text-xl font-black text-white">{stat.value}</p>
+                                </div>
+                            ))}
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative z-10">
-                        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Power Draw</p>
-                            <p className="text-xl font-black text-slate-900 dark:text-white">{active.power}</p>
-                        </div>
-                        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Current Mode</p>
-                            <p className="text-xl font-black text-slate-900 dark:text-white truncate">{active.mode}</p>
-                        </div>
-                        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Temperature</p>
-                            <p className="text-xl font-black text-slate-900 dark:text-white">{active.temp || active.charge || 'N/A'}</p>
-                        </div>
-                        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Device Health</p>
-                            <p className="text-xl font-black text-slate-900 dark:text-white truncate">{active.health}</p>
-                        </div>
-                    </div>
-                </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Usage Chart */}
-                    <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">7-Day Usage</h3>
-                            <select className="bg-slate-100 dark:bg-slate-800 border-none text-xs font-bold rounded-lg px-3 py-1 focus:ring-primary text-slate-600 dark:text-slate-300 outline-none">
-                                <option>Last Week</option>
-                                <option>Last Month</option>
-                            </select>
-                        </div>
-                        <div className="h-64 w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={chartData}>
-                                    <XAxis
-                                        dataKey="day"
-                                        axisLine={false}
-                                        tickLine={false}
-                                        tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}
-                                        dy={10}
-                                    />
-                                    <Tooltip
-                                        cursor={{ fill: 'transparent' }}
-                                        contentStyle={{ backgroundColor: '#1e293b', borderRadius: '12px', border: 'none', color: 'white' }}
-                                        itemStyle={{ color: 'white' }}
-                                    />
-                                    <Bar dataKey="usage" radius={[4, 4, 4, 4]} barSize={40}>
-                                        {chartData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={index === 3 ? '#ec5b13' : '#e2e8f0'} className="dark:fill-slate-700" />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </div>
-
-                    {/* Secondary Metrics */}
-                    <div className="grid grid-cols-1 gap-4">
-                        <div className="bg-slate-900 dark:bg-slate-800 p-6 rounded-[2rem] text-white flex flex-col justify-between relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/20 rounded-full blur-2xl -mr-10 -mt-10"></div>
-                            <div className="relative z-10">
-                                <span className="material-symbols-outlined text-3xl mb-3 text-emerald-400">eco</span>
+                        {/* Usage Chart */}
+                        <div className="lg:col-span-2 glass-panel p-8 rounded-[3rem]">
+                            <div className="flex justify-between items-center mb-8">
                                 <div>
-                                    <p className="text-[10px] font-black text-white/50 uppercase tracking-widest">Grid Load Impact</p>
-                                    <p className="text-lg font-black uppercase tracking-tight">Minimal Impact</p>
+                                    <h3 className="text-lg font-black text-white uppercase tracking-tight">7-Day History</h3>
+                                    <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">
+                                        Avg: {Math.round(chartData.reduce((a, b) => a + b.value, 0) / 7 * 10) / 10} kWh/day
+                                    </p>
                                 </div>
                             </div>
-                            <span className="text-emerald-400 text-[10px] font-black bg-emerald-400/10 px-3 py-1 rounded-full uppercase tracking-widest self-start mt-4">+12 Pts / hr</span>
+                            <div className="h-64 w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={chartData}>
+                                        <defs>
+                                            <linearGradient id="deviceGradient" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stopColor="#818cf8" stopOpacity={1} />
+                                                <stop offset="100%" stopColor="#6366f1" stopOpacity={0.6} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff10" />
+                                        <XAxis
+                                            dataKey="label"
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fill: '#64748b', fontSize: 10, fontWeight: 'bold' }}
+                                            dy={10}
+                                        />
+                                        <Tooltip
+                                            cursor={{ fill: 'transparent' }}
+                                            contentStyle={{ backgroundColor: '#0f172a', borderRadius: '1rem', border: '1px solid #ffffff10', color: 'white' }}
+                                            itemStyle={{ color: '#818cf8' }}
+                                            formatter={(value) => [`${value.toFixed(2)} kWh`, 'Usage']}
+                                        />
+                                        <Bar dataKey="value" radius={[6, 6, 6, 6]} barSize={32} fill="url(#deviceGradient)">
+                                            {/* Highlight today (last item usually) approx logic */}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
                         </div>
 
-                        <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                            <div>
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Daily Cost Estimate</p>
-                                <p className="text-xl font-black text-slate-900 dark:text-white mt-1">₹ 14.20</p>
-                            </div>
-                            <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400">
-                                <span className="material-symbols-outlined">payments</span>
+                        {/* Grid Impact Card */}
+                        <div className="flex flex-col gap-6">
+                            <div className={`p-8 rounded-[3rem] text-white flex flex-col justify-between relative overflow-hidden h-full ${currentPower > 2
+                                    ? 'bg-gradient-to-br from-orange-600 to-red-900 border border-orange-500/30'
+                                    : 'bg-gradient-to-br from-emerald-900 to-black border border-emerald-500/20'
+                                }`}>
+                                <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+
+                                <div className="relative z-10">
+                                    <Leaf className={`w-10 h-10 mb-4 ${currentPower > 2 ? 'text-white' : 'text-emerald-400'}`} />
+                                    <p className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-1">Grid Impact</p>
+                                    <h3 className="text-2xl font-black uppercase tracking-tight leading-tight">
+                                        {currentPower > 2 ? 'High Demand' : 'Eco Friendly'}
+                                    </h3>
+                                    <p className="text-sm font-medium mt-2 text-white/80">
+                                        {currentPower > 2
+                                            ? 'This device is consuming significant power. Consider scheduling for off-peak.'
+                                            : 'This device is operating efficiently with minimal impact on the grid.'}
+                                    </p>
+                                </div>
+
+                                <div className={`mt-6 self-start px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${currentPower > 2 ? 'bg-black/20 text-white' : 'bg-emerald-500/20 text-emerald-300'
+                                    }`}>
+                                    {currentPower > 2 ? '-5 Pts / hr' : '+12 Pts / hr'}
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };
